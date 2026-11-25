@@ -74,7 +74,7 @@ def assemble(source, output=None, symbols_path="symbols.txt"):
             machine.append(f"{address:016b}")
             continue
 
-        dest="", comp=line, jump=""
+        dest, comp, jump = "", line, ""
         if "=" in line:
             dest,rest=line.split("=",1)
         else:
