@@ -1,0 +1,40 @@
+// Hack CPU (Nand2Tetris Project 5)
+CHIP CPU {
+    IN inM[16], instruction[16], reset;
+    OUT outM[16], writeM, addressM[15], pc[15];
+
+    PARTS:
+    // A register: load A-instruction value or ALU output.
+    Not(in=instruction[15], out=isAInstruction);
+    And(a=instruction[15], b=instruction[5], out=loadAFromC);
+    Or(a=isAInstruction, b=loadAFromC, out=loadA);
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=aInput);
+    ARegister(in=aInput, load=loadA, out=A, out[0..14]=addressM);
+
+    // D register
+    And(a=instruction[15], b=instruction[4], out=loadD);
+    DRegister(in=aluOut, load=loadD, out=D);
+
+    // ALU
+    Mux16(a=A, b=inM, sel=instruction[12], out=aluY);
+    ALU(x=D, y=aluY,
+        zx=instruction[11], nx=instruction[10],
+        zy=instruction[9], ny=instruction[8],
+        f=instruction[7], no=instruction[6],
+        out=aluOut, out=outM, zr=zr, ng=ng);
+
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // Jump conditions: j1=JGT, j2=JEQ, j3=JLT.
+    Not(in=ng, out=notNg);
+    Not(in=zr, out=notZr);
+    And(a=notNg, b=notZr, out=positive);
+    And(a=instruction[0], b=positive, out=jumpGT);
+    And(a=instruction[1], b=zr, out=jumpEQ);
+    And(a=instruction[2], b=ng, out=jumpLT);
+    Or(a=jumpGT, b=jumpEQ, out=jumpGTorEQ);
+    Or(a=jumpGTorEQ, b=jumpLT, out=jumpAny);
+    And(a=instruction[15], b=jumpAny, out=pcLoad);
+
+    PC(in=A, load=pcLoad, inc=true, reset=reset, out[0..14]=pc);
+}
